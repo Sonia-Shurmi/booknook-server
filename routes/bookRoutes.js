@@ -258,7 +258,7 @@ router.delete("/:id", verifyToken, async (req, res) => {
     }
 
     const activeBorrow = await db.collection("borrows").findOne({
-      bookId: id,
+      bookId: bookId,
       status: "active",
     });
 
