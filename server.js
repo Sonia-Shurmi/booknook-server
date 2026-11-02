@@ -1,4 +1,4 @@
-// server main entry point
+
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
@@ -12,7 +12,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
   process.env.CLIENT_URL,
-];
+].filter(Boolean);
 
 app.use(
   cors({
@@ -28,6 +28,51 @@ app.use(
 
 app.use(express.json());
 
+// Initialize MongoDB once and reuse it
+let dbInitialization;
+
+const initializeDB = () => {
+  if (!dbInitialization) {
+    dbInitialization = (async () => {
+      const db = await connectDB();
+
+      await db.collection("borrows").createIndex(
+        { bookId: 1, userEmail: 1 },
+        {
+          unique: true,
+          partialFilterExpression: { status: "active" },
+          name: "unique_active_borrow_per_user",
+        }
+      );
+
+      app.locals.db = db;
+
+      console.log("MongoDB and borrow indexes initialized!");
+
+      return db;
+    })().catch((error) => {
+      dbInitialization = null;
+      throw error;
+    });
+  }
+
+  return dbInitialization;
+};
+
+// Ensure database initialization before handling requests
+app.use(async (req, res, next) => {
+  try {
+    await initializeDB();
+    next();
+  } catch (error) {
+    console.error("Database initialization failed:", error.message);
+
+    res.status(500).json({
+      message: "Database connection failed",
+    });
+  }
+});
+
 app.use("/books", bookRoutes);
 app.use("/borrows", borrowRoutes);
 
@@ -35,31 +80,14 @@ app.get("/", (req, res) => {
   res.send("BookNook Server is Running!");
 });
 
-const startServer = async () => {
-  try {
-    const db = await connectDB();
-    app.locals.db = db;
+// Export Express app for Vercel
+module.exports = app;
 
-    // Create the unique index for active borrows once at startup
-    await db.collection("borrows").createIndex(
-      { bookId: 1, userEmail: 1 },
-      {
-        unique: true,
-        partialFilterExpression: { status: "active" },
-        name: "unique_active_borrow_per_user",
-      }
-    );
+// Start a local server only during local development
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
 
-    console.log("Borrow indexes created successfully!");
-
-    const PORT = process.env.PORT || 5000;
-
-    app.listen(PORT, () => {
-      console.log(`BookNook server is running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Server startup failed:", error.message);
-  }
-};
-
-startServer();
+  app.listen(PORT, () => {
+    console.log(`BookNook server is running on port ${PORT}`);
+  });
+}
