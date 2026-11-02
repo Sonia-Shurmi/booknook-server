@@ -13,6 +13,14 @@ const allowedCategories = [
   "Kids",
   "Others",
 ];
+const isValidImageUrl = (value) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+};
 
 // Get all books (Public)
 router.get("/", async (req, res) => {
@@ -82,7 +90,7 @@ router.post("/", verifyToken, async (req, res) => {
       typeof author !== "string" ||
       !author.trim() ||
       typeof image !== "string" ||
-      !image.trim() ||
+      !isValidImageUrl(image.trim()) ||
       typeof description !== "string" ||
       !description.trim() ||
       !allowedCategories.includes(category)
@@ -151,7 +159,7 @@ router.patch("/:id", verifyToken, async (req, res) => {
       typeof author !== "string" ||
       !author.trim() ||
       typeof image !== "string" ||
-      !image.trim() ||
+      !isValidImageUrl(image.trim()) ||
       typeof description !== "string" ||
       !description.trim() ||
       !allowedCategories.includes(category)
