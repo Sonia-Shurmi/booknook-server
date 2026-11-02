@@ -1,7 +1,7 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "BookNook - Backend API for an online library management platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
