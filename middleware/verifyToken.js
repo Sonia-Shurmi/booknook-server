@@ -1,11 +1,23 @@
 
-const { jwtVerify, createRemoteJWKSet } = require("jose");
-
 const AUTH_URL = process.env.AUTH_URL || "http://localhost:3000";
 
-const JWKS = createRemoteJWKSet(
-  new URL(`${AUTH_URL}/api/auth/jwks`)
-);
+// Load jose using dynamic import because it is an ES Module
+let joseConfigPromise;
+
+const getJoseConfig = () => {
+  if (!joseConfigPromise) {
+    joseConfigPromise = import("jose").then(
+      ({ jwtVerify, createRemoteJWKSet }) => ({
+        jwtVerify,
+        JWKS: createRemoteJWKSet(
+          new URL(`${AUTH_URL}/api/auth/jwks`)
+        ),
+      })
+    );
+  }
+
+  return joseConfigPromise;
+};
 
 const verifyToken = async (req, res, next) => {
   try {
@@ -18,6 +30,8 @@ const verifyToken = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
+
+    const { jwtVerify, JWKS } = await getJoseConfig();
 
     const { payload } = await jwtVerify(token, JWKS, {
       issuer: AUTH_URL,
