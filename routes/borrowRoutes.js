@@ -35,16 +35,7 @@ router.post("/", verifyToken, async (req, res) => {
     const userName = req.user.name || userEmail;
     const bookObjectId = new ObjectId(bookId);
 
-    // Ensure only one active borrow per user per book
-    await borrowsCollection.createIndex(
-      { bookId: 1, userEmail: 1 },
-      {
-        unique: true,
-        partialFilterExpression: { status: "active" },
-        name: "unique_active_borrow_per_user",
-      }
-    );
-
+    // Check whether the book exists
     const book = await booksCollection.findOne({
       _id: bookObjectId,
     });
@@ -97,6 +88,7 @@ router.post("/", verifyToken, async (req, res) => {
         { $inc: { availableCopies: 1 } }
       );
 
+      // Handle duplicate active borrow
       if (insertError.code === 11000) {
         return res.status(409).json({
           message: "You have already borrowed this book",
@@ -108,7 +100,7 @@ router.post("/", verifyToken, async (req, res) => {
   } catch (error) {
     console.error("Borrow error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to borrow book",
     });
   }
@@ -129,18 +121,17 @@ router.get("/", verifyToken, async (req, res) => {
       .sort({ borrowDate: -1 })
       .toArray();
 
-    res.status(200).json(borrows);
+    return res.status(200).json(borrows);
   } catch (error) {
     console.error("Fetch borrows error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to fetch borrowed books",
     });
   }
 });
 
 // Return a borrowed book (Owner only)
-
 router.delete("/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -195,17 +186,16 @@ router.delete("/:id", verifyToken, async (req, res) => {
       { $inc: { availableCopies: 1 } }
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Book returned successfully",
     });
   } catch (error) {
     console.error("Return error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to return book",
     });
   }
 });
-
 
 module.exports = router;
