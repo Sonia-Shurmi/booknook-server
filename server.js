@@ -1,15 +1,17 @@
+
 const express = require("express");
 const cors = require("cors");
-const bookRoutes = require("./routes/bookRoutes");
-const borrowRoutes = require("./routes/borrowRoutes");
 require("dotenv").config();
 
 const connectDB = require("./config/db");
+const bookRoutes = require("./routes/bookRoutes");
+const borrowRoutes = require("./routes/borrowRoutes");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
 app.use("/books", bookRoutes);
 app.use("/borrows", borrowRoutes);
 
@@ -21,6 +23,18 @@ const startServer = async () => {
   try {
     const db = await connectDB();
     app.locals.db = db;
+
+    // Create the unique index for active borrows once at startup
+    await db.collection("borrows").createIndex(
+      { bookId: 1, userEmail: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { status: "active" },
+        name: "unique_active_borrow_per_user",
+      }
+    );
+
+    console.log("Borrow indexes created successfully!");
 
     const PORT = process.env.PORT || 5000;
 
