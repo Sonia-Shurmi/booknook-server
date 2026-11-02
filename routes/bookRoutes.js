@@ -216,11 +216,11 @@ router.patch("/:id", verifyToken, async (req, res) => {
       }
     );
 
-    if (result.modifiedCount === 0) {
-      return res.status(409).json({
-        message: "Book changed during update. Please try again.",
-      });
-    }
+    if (result.matchedCount === 0) {
+    return res.status(409).json({
+      message: "Book changed during update. Please try again.",
+    });
+  }
 
     res.status(200).json({
       message: "Book updated successfully",
