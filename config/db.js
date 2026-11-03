@@ -1,16 +1,26 @@
+
 const { MongoClient } = require("mongodb");
 
 const client = new MongoClient(process.env.MONGODB_URI);
 
 let db;
+let connectionPromise;
 
 const connectDB = async () => {
   try {
-    await client.connect();
+    if (!connectionPromise) {
+      connectionPromise = client.connect().catch((error) => {
+        connectionPromise = null;
+        throw error;
+      });
+    }
 
-    db = client.db("booknookDB");
+    await connectionPromise;
 
-    console.log("MongoDB Connected Successfully!");
+    if (!db) {
+      db = client.db("booknookDB");
+      console.log("MongoDB Connected Successfully!");
+    }
 
     return db;
   } catch (error) {

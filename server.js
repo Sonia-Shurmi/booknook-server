@@ -28,6 +28,11 @@ app.use(
 
 app.use(express.json());
 
+// Server health check (does not depend on MongoDB)
+app.get("/", (req, res) => {
+  res.status(200).send("BookNook Server is Running!");
+});
+
 // Initialize MongoDB once and reuse it
 let dbInitialization;
 
@@ -59,7 +64,7 @@ const initializeDB = () => {
   return dbInitialization;
 };
 
-// Ensure database initialization before handling requests
+// Ensure database initialization before handling API requests
 app.use(async (req, res, next) => {
   try {
     await initializeDB();
@@ -75,10 +80,6 @@ app.use(async (req, res, next) => {
 
 app.use("/books", bookRoutes);
 app.use("/borrows", borrowRoutes);
-
-app.get("/", (req, res) => {
-  res.send("BookNook Server is Running!");
-});
 
 // Export Express app for Vercel
 module.exports = app;
